@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Clínica</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <div class="login-container" id="loginContainer">
+        <div class="login-box">
+            <h1>🏥 Clínica</h1>
+            <div id="alertLogin" class="alert"></div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Email o Usuario</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Ingresar</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="dashboard" id="dashboard">
+        <div class="navbar">
+            <h2>🏥 Sistema de Gestión de Clínica</h2>
+            <div class="navbar-user">
+                <div class="user-info">
+                    <div id="userName"></div>
+                    <small id="userRole"></small>
+                </div>
+                <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="main-content">
+
+                <!-- ===== ADMINISTRADOR ===== -->
+                <div id="adminDashboard" class="section">
+                    <button class="btn-menu active" onclick="showAdminSection('users')">Gestionar Usuarios</button>
+                    <button class="btn-menu" onclick="showAdminSection('registerUser')">Registrar Usuario</button>
+
+                    <div id="adminUsers" class="section active">
+                        <h3>Lista de Usuarios</h3>
+                        <div id="usersList"></div>
+                    </div>
+
+                    <div id="adminUserDetail" class="section">
+                        <button class="back-btn" onclick="showAdminSection('users')">← Volver</button>
+                        <div id="userDetailContent"></div>
+                    </div>
+                    <div id="adminEditUser" class="section">
+                        <button class="back-btn" onclick="showAdminSection('users')">← Volver</button>
+                        <h3>Editar Usuario</h3>
+                        <form id="editUserForm" onsubmit="saveEditedUser(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="editUserName">Nombre</label>
+                                    <input type="text" id="editUserName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editUserLastname">Apellido</label>
+                                    <input type="text" id="editUserLastname" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="editUserEmail">Email</label>
+                                    <input type="email" id="editUserEmail" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editUserCedula">Cédula</label>
+                                    <input type="text" id="editUserCedula" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="editUserPhone">Teléfono</label>
+                                    <input type="tel" id="editUserPhone" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editUserPassword">Contraseña</label>
+                                    <input type="password" id="editUserPassword" required>
+                                </div>
+                            </div>
+                            <div id="editDoctorFields" style="display:none;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="editDoctorSpecialty">Especialidad</label>
+                                        <input type="text" id="editDoctorSpecialty">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="editDoctorSchedule">Horario de Atención</label>
+                                        <input type="text" id="editDoctorSchedule" placeholder="Ej: 8AM - 5PM">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="editDoctorConsultPhone">Teléfono Consulta</label>
+                                        <input type="tel" id="editDoctorConsultPhone">
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-20">Actualizar Usuario</button>
+                        </form>
+                    </div>
+                    <div id="adminRegisterUser" class="section">
+                        <h3>Registrar Nuevo Usuario</h3>
+                        <form id="registerUserForm" onsubmit="saveNewUser(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="newUserName">Nombre</label>
+                                    <input type="text" id="newUserName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="newUserLastname">Apellido</label>
+                                    <input type="text" id="newUserLastname" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="newUserEmail">Email</label>
+                                    <input type="email" id="newUserEmail" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="newUserCedula">Cédula</label>
+                                    <input type="text" id="newUserCedula" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="newUserPhone">Teléfono</label>
+                                    <input type="tel" id="newUserPhone" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="newUserPassword">Contraseña</label>
+                                    <input type="password" id="newUserPassword" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="newUserRole">Rol</label>
+                                    <select id="newUserRole" required onchange="updateRoleFields()">
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="R001">Administrador</option>
+                                        <option value="R002">Secretario</option>
+                                        <option value="R003">Médico</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="doctorFields" style="display:none;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="doctorSpecialty">Especialidad</label>
+                                        <input type="text" id="doctorSpecialty">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="doctorSchedule">Horario de Atención</label>
+                                        <input type="text" id="doctorSchedule" placeholder="Ej: 8AM - 5PM">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="doctorConsultPhone">Teléfono Consulta</label>
+                                        <input type="tel" id="doctorConsultPhone">
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-20">Registrar Usuario</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ===== SECRETARIO ===== -->
+                <div id="secretaryDashboard" class="section">
+                    <button class="btn-menu active" onclick="showSecretarySection('patients')">Pacientes</button>
+                    <button class="btn-menu" onclick="showSecretarySection('appointments')">Citas</button>
+                    <button class="btn-menu" onclick="showSecretarySection('registerPatient')">Registrar
+                        Paciente</button>
+                    <button class="btn-menu" onclick="showSecretarySection('registerAppointment')">Registrar
+                        Cita</button>
+
+                    <div id="secretaryPatients" class="section active">
+                        <h3>Lista de Pacientes</h3>
+                        <div id="patientsList"></div>
+                    </div>
+
+                    <div id="secretaryPatientDetail" class="section">
+                        <button class="back-btn" onclick="showSecretarySection('patients')">← Volver</button>
+                        <div id="patientDetailContent"></div>
+                    </div>
+
+                    <div id="secretaryPatientEdit" class="section">
+                        <button class="back-btn" onclick="showSecretarySection('patients')">← Volver</button>
+                        <h3>Editar Paciente</h3>
+                        <form id="editPatientForm" onsubmit="saveEditedPatient(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="editPatientName">Nombre</label>
+                                    <input type="text" id="editPatientName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editPatientLastname">Apellido</label>
+                                    <input type="text" id="editPatientLastname" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="editPatientCedula">Cédula</label>
+                                    <input type="text" id="editPatientCedula" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editPatientEmail">Email</label>
+                                    <input type="email" id="editPatientEmail" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="editPatientPhone">Teléfono</label>
+                                    <input type="tel" id="editPatientPhone" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editPatientBirthDate">Fecha de Nacimiento</label>
+                                    <input type="date" id="editPatientBirthDate" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="editPatientGender">Sexo</label>
+                                    <select id="editPatientGender" required>
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Femenino</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editPatientAddress">Dirección</label>
+                                    <input type="text" id="editPatientAddress" required>
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label for="editPatientEmergency">Contacto de Emergencia</label>
+                                    <input type="text" id="editPatientEmergency" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-20">Actualizar Paciente</button>
+                        </form>
+                    </div>
+
+                    <div id="secretaryAppointments" class="section">
+                        <h3>Citas Registradas</h3>
+                        <div id="appointmentsList"></div>
+                    </div>
+
+                    <div id="secretaryAppointmentDetail" class="section">
+                        <button class="back-btn" onclick="showSecretarySection('appointments')">← Volver</button>
+                        <div id="appointmentDetailContent"></div>
+                    </div>
+
+                    <div id="secretaryRegisterPatient" class="section">
+                        <h3>Registrar Nuevo Paciente</h3>
+                        <form id="registerPatientForm" onsubmit="saveNewPatient(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="patientName">Nombre</label>
+                                    <input type="text" id="patientName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="patientLastname">Apellido</label>
+                                    <input type="text" id="patientLastname" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="patientCedula">Cédula</label>
+                                    <input type="text" id="patientCedula" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="patientEmail">Email</label>
+                                    <input type="email" id="patientEmail" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="patientPhone">Teléfono</label>
+                                    <input type="tel" id="patientPhone" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="patientBirthDate">Fecha de Nacimiento</label>
+                                    <input type="date" id="patientBirthDate" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="patientGender">Sexo</label>
+                                    <select id="patientGender" required>
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Femenino</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="patientAddress">Dirección</label>
+                                    <input type="text" id="patientAddress" required>
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label for="patientEmergency">Contacto de Emergencia</label>
+                                    <input type="text" id="patientEmergency" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-20">Registrar Paciente</button>
+                        </form>
+                    </div>
+
+                    <div id="secretaryRegisterAppointment" class="section">
+                        <h3>Registrar Nueva Cita</h3>
+                        <form id="registerAppointmentForm" onsubmit="saveNewAppointment(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="appointmentPatient">Paciente</label>
+                                    <select id="appointmentPatient" required>
+                                        <option value="">-- Seleccionar --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="appointmentDoctor">Médico</label>
+                                    <select id="appointmentDoctor" required>
+                                        <option value="">-- Seleccionar --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="appointmentDate">Fecha de Cita</label>
+                                    <input type="date" id="appointmentDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="appointmentTime">Hora de Cita</label>
+                                    <input type="time" id="appointmentTime" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="appointmentStatus">Estado</label>
+                                    <select id="appointmentStatus" required>
+                                        <option value="Pendiente">Pendiente</option>
+                                        <option value="Confirmada">Confirmada</option>
+                                        <option value="Cancelada">Cancelada</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-20">Registrar Cita</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ===== MEDICO ===== -->
+                <div id="doctorDashboard" class="section">
+                    <button class="btn-menu active" onclick="showDoctorSection('patients')">Pacientes</button>
+                    <button class="btn-menu" onclick="showDoctorSection('appointments')">Citas</button>
+                    <button class="btn-menu" onclick="showDoctorSection('medicalCare')">Registrar Atención
+                        Médica</button>
+                    <button class="btn-menu" onclick="showDoctorSection('medicalHistory')">Registrar Antecedente
+                        Médico</button>
+
+                    <div id="doctorPatients" class="section active">
+                        <h3>Lista de Pacientes</h3>
+                        <div id="doctorPatientsList"></div>
+                    </div>
+
+                    <div id="doctorPatientDetail" class="section">
+                        <button class="back-btn" onclick="showDoctorSection('patients')">← Volver</button>
+                        <div id="doctorPatientDetailContent"></div>
+                    </div>
+
+                    <div id="doctorAppointments" class="section">
+                        <h3>Citas del Día / Próximas Citas</h3>
+                        <div id="doctorAppointmentsList"></div>
+                    </div>
+
+                    <div id="doctorAppointmentDetail" class="section">
+                        <button class="back-btn" onclick="showDoctorSection('appointments')">← Volver</button>
+                        <div id="doctorAppointmentDetailContent"></div>
+                    </div>
+
+                    <div id="doctorMedicalCare" class="section">
+                        <h3>Registrar Atención Médica</h3>
+                        <form id="medicalCareForm" onsubmit="saveMedicalCare(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="careAppointment">Cita</label>
+                                    <select id="careAppointment" required>
+                                        <option value="">-- Seleccionar --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="careDate">Fecha de Atención</label>
+                                    <input type="date" id="careDate" required>
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label for="careReason">Motivo de Consulta</label>
+                                    <input type="text" id="careReason" required>
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label for="careDiagnosis">Diagnóstico</label>
+                                    <input type="text" id="careDiagnosis" required>
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label for="careObservations">Observaciones</label>
+                                    <textarea id="careObservations" rows="4"></textarea>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-20">Registrar Atención</button>
+                        </form>
+                    </div>
+
+                    <div id="doctorMedicalHistory" class="section">
+                        <h3>Registrar Antecedente Médico</h3>
+                        <form id="medicalHistoryForm" onsubmit="saveMedicalHistory(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="historyPatient">Paciente</label>
+                                    <select id="historyPatient" required>
+                                        <option value="">-- Seleccionar --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label for="historyAllergies">Alergias</label>
+                                    <input type="text" id="historyAllergies" required>
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label for="historyChronic">Enfermedades Crónicas</label>
+                                    <input type="text" id="historyChronic" required>
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label for="historyObservations">Observaciones Generales</label>
+                                    <textarea id="historyObservations" rows="4"></textarea>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-20">Registrar Antecedente</button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
