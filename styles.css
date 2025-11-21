@@ -390,6 +390,8 @@ table tr:hover {
 .info-item p {
     color: #333;
     margin: 0;
+    word-wrap: break-word;
+    min-height: 20px;
 }
 
 .info-item.full {
@@ -494,34 +496,170 @@ h4 {
 }
 
 /* ===== TARJETAS DE ESTADÍSTICAS ===== */
-.stats-grid {
+.statistics-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
-    margin: 20px 0;
+    margin: 30px 0;
 }
 
 .stat-card {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 20px;
+    padding: 25px;
     border-radius: 10px;
-    text-align: center;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
 .stat-card h4 {
-    color: white;
-    margin-bottom: 10px;
+    margin: 0 0 10px 0;
     font-size: 14px;
-    text-transform: uppercase;
     opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: white;
 }
 
-.stat-card .stat-number {
-    font-size: 32px;
+.stat-number {
+    font-size: 36px;
     font-weight: bold;
+    margin: 10px 0;
+    display: block;
+}
+
+.stat-label {
     margin: 0;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* ===== GRÁFICOS DASHBOARD ===== */
+.charts-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 30px;
+    margin: 40px 0;
+}
+
+.chart-box {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.chart-box h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 15px;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-table {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.chart-table thead {
+    background: #f8f9fa;
+}
+
+.chart-table th {
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+}
+
+.chart-table td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.chart-table tr:hover {
+    background: #f9f9f9;
+}
+
+.chart-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.chart-label {
+    min-width: 150px;
+    font-weight: 600;
+    color: #333;
+}
+
+.chart-bar-fill {
+    flex: 1;
+    height: 30px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 5px;
+    margin: 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.chart-value {
+    min-width: 40px;
+    text-align: right;
+    color: #333;
+    font-weight: 600;
+}
+
+.pie-chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.pie-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+}
+
+.legend-text {
+    font-size: 14px;
+    color: #333;
 }
 
 /* ===== ELEMENTOS DE ATENCIÓN MÉDICA ===== */
@@ -589,6 +727,18 @@ h4 {
         width: 100%;
         margin-bottom: 5px;
     }
+
+    .statistics-container {
+        grid-template-columns: 1fr;
+    }
+
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-wrapper {
+        height: 250px;
+    }
 }
 
 /* ===== UTILIDADES ===== */
@@ -634,4 +784,115 @@ h4 {
 
 .care-detail[style*="display: block"] {
     animation: fadeIn 0.3s ease;
+}
+
+/* ===== PIE CHART ===== */
+.pie-chart-wrapper {
+    position: relative;
+    height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pie-chart-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.stats-section {
+    margin-bottom: 40px;
+}
+
+.stats-section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #667eea;
+}
+
+/* ===== PERFORMANCE STATS ===== */
+.performance-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.performance-stat:last-child {
+    border-bottom: none;
+}
+
+.perf-label {
+    font-weight: 600;
+    color: #666;
+    font-size: 14px;
+}
+
+.perf-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Estilos para el combobox de estados con colores */
+.status-select {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+    font-weight: 600;
+}
+
+.status-select:hover {
+    border-color: #007bff;
+}
+
+.status-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Colores para cada estado */
+.status-pendiente {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    border-color: #ffc107 !important;
+}
+
+.status-confirmada {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    border-color: #28a745 !important;
+}
+
+.status-cancelada {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+    border-color: #dc3545 !important;
+}
+
+/* Estilos específicos para cada estado en el combobox (opciones) */
+.status-select option[value="Pendiente"] {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-select option[value="Confirmada"] {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-select option[value="Cancelada"] {
+    background-color: #f8d7da;
+    color: #721c24;
 }

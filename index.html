@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Gestión de Clínica</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 </head>
 
 <body>
@@ -16,7 +17,7 @@
             <div id="alertLogin" class="alert"></div>
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="username">Email o Usuario</label>
+                    <label for="username">Email</label>
                     <input type="text" id="username" required>
                 </div>
                 <div class="form-group">
@@ -47,6 +48,7 @@
                 <div id="adminDashboard" class="section">
                     <button class="btn-menu active" onclick="showAdminSection('users')">Gestionar Usuarios</button>
                     <button class="btn-menu" onclick="showAdminSection('registerUser')">Registrar Usuario</button>
+                    <button class="btn-menu" onclick="showAdminSection('statistics')">Estadísticas</button>
 
                     <div id="adminUsers" class="section active">
                         <h3>Lista de Usuarios</h3>
@@ -176,6 +178,35 @@
                             </div>
                             <button type="submit" class="btn btn-primary mt-20">Registrar Usuario</button>
                         </form>
+                    </div>
+
+                    <div id="adminStatistics" class="section">
+                        <h3>Estadísticas de la Clínica</h3>
+                        <div class="statistics-container">
+                            <div class="stat-card">
+                                <h4>Usuarios Activos</h4>
+                                <p class="stat-number" id="statActiveUsers">0</p>
+                                <p class="stat-label">Total de usuarios</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Médicos</h4>
+                                <p class="stat-number" id="statDoctors">0</p>
+                                <p class="stat-label">Médicos registrados</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Pacientes</h4>
+                                <p class="stat-number" id="statPatients">0</p>
+                                <p class="stat-label">Pacientes activos</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Citas Totales</h4>
+                                <p class="stat-number" id="statTotalAppointments">0</p>
+                                <p class="stat-label">Citas registradas</p>
+                            </div>
+                        </div>
+                        <div id="doctorsBySpecialty"></div>
+                        <div id="patientsByGender"></div>
+                        <div id="appointmentsByStatus"></div>
                     </div>
                 </div>
 
@@ -348,16 +379,6 @@
                                 <div class="form-group">
                                     <label for="appointmentTime">Hora de Cita</label>
                                     <input type="time" id="appointmentTime" required>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="appointmentStatus">Estado</label>
-                                    <select id="appointmentStatus" required>
-                                        <option value="Pendiente">Pendiente</option>
-                                        <option value="Confirmada">Confirmada</option>
-                                        <option value="Cancelada">Cancelada</option>
-                                    </select>
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-primary mt-20">Registrar Cita</button>

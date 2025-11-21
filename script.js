@@ -387,7 +387,106 @@ let store = {
             active: true
         }
     ],
-    appointments: [],
+    appointments: [
+        {
+            id: 'A001',
+            patientId: 'P001',
+            doctorId: 'U004', // Ana Rodríguez - Cardiología
+            date: '2024-01-15',
+            time: '09:00',
+            status: 'Confirmada',
+            createdDate: '2024-01-10'
+        },
+        {
+            id: 'A002',
+            patientId: 'P002',
+            doctorId: 'U004', // Ana Rodríguez - Cardiología
+            date: '2024-01-16',
+            time: '10:30',
+            status: 'Pendiente',
+            createdDate: '2024-01-11'
+        },
+        {
+            id: 'A003',
+            patientId: 'P003',
+            doctorId: 'U004', // Ana Rodríguez - Cardiología
+            date: '2024-01-17',
+            time: '14:00',
+            status: 'Confirmada',
+            createdDate: '2024-01-12'
+        },
+        
+        // Citas de ejemplo para Pediatría
+        {
+            id: 'A004',
+            patientId: 'P004',
+            doctorId: 'U005', // Juan Pérez - Pediatría
+            date: '2024-01-15',
+            time: '11:00',
+            status: 'Confirmada',
+            createdDate: '2024-01-10'
+        },
+        {
+            id: 'A005',
+            patientId: 'P005',
+            doctorId: 'U005', // Juan Pérez - Pediatría
+            date: '2024-01-16',
+            time: '15:30',
+            status: 'Pendiente',
+            createdDate: '2024-01-11'
+        },
+        
+        // Citas de ejemplo para Dermatología
+        {
+            id: 'A006',
+            patientId: 'P006',
+            doctorId: 'U006', // Laura Martínez - Dermatología
+            date: '2024-01-18',
+            time: '08:30',
+            status: 'Confirmada',
+            createdDate: '2024-01-13'
+        },
+        {
+            id: 'A007',
+            patientId: 'P007',
+            doctorId: 'U006', // Laura Martínez - Dermatología
+            date: '2024-01-19',
+            time: '16:00',
+            status: 'Cancelada',
+            createdDate: '2024-01-14'
+        },
+        
+        // Citas de ejemplo para Ortopedia
+        {
+            id: 'A008',
+            patientId: 'P008',
+            doctorId: 'U007', // Roberto Hernández - Ortopedia
+            date: '2024-01-20',
+            time: '09:30',
+            status: 'Pendiente',
+            createdDate: '2024-01-15'
+        },
+        
+        // Citas de ejemplo para Ginecología
+        {
+            id: 'A009',
+            patientId: 'P009',
+            doctorId: 'U008', // Sofia Díaz - Ginecología
+            date: '2024-01-21',
+            time: '13:00',
+            status: 'Confirmada',
+            createdDate: '2024-01-16'
+        },
+        {
+            id: 'A010',
+            patientId: 'P010',
+            doctorId: 'U008', // Sofia Díaz - Ginecología
+            date: '2024-01-22',
+            time: '10:00',
+            status: 'Confirmada',
+            createdDate: '2024-01-17'
+        }
+    ],
     medicalCare: [],
     medicalHistory: [],
     doctors: [
@@ -436,6 +535,7 @@ let currentUser = null;
 let selectedUserId = null;
 let selectedPatientId = null;
 let selectedAppointmentId = null;
+let lockedAccounts = {}; // Almacenar cuentas bloqueadas con timestamp
 
 // ===== GENERADOR DE IDs =====
 function generateId(prefix) {
@@ -473,6 +573,16 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
         currentUser = { ...user, role: roleObj.code };
         showDashboard();
     } else {
+        // Verificar si el usuario existe pero está inactivo
+        const inactiveUser = store.users.find(u => (u.email === username || u.email === username) && u.password === password && !u.active);
+        
+        if (inactiveUser) {
+            alertDiv.className = 'alert alert-danger';
+            alertDiv.textContent = 'Esta cuenta ha sido desactivada. Contacte al administrador.';
+            alertDiv.style.display = 'block';
+            return;
+        }
+
         store.loginAttempts[lockKey]++;
         const remaining = 3 - store.loginAttempts[lockKey];
         if (remaining > 0) {
@@ -481,8 +591,10 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
         } else {
             alertDiv.className = 'alert alert-danger';
             alertDiv.textContent = 'Cuenta bloqueada temporalmente por múltiples intentos fallidos.';
+            lockedAccounts[lockKey] = Date.now() + 900000; // 15 minutos
             setTimeout(() => {
                 store.loginAttempts[lockKey] = 0;
+                delete lockedAccounts[lockKey];
             }, 900000);
         }
         alertDiv.style.display = 'block';
@@ -562,12 +674,26 @@ function loadUsersList() {
         return;
     }
 
-    let html = '<table><thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
+    let html = '<table><thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Bloqueo</th><th>Acciones</th></tr></thead><tbody>';
     
     store.users.forEach(user => {
         const role = store.roles.find(r => r.id === user.roleId);
         const roleBadge = role.code === 'admin' ? 'badge-admin' : role.code === 'secretary' ? 'badge-secretary' : 'badge-doctor';
         const stateBadge = user.active ? 'badge-active' : 'badge-inactive';
+        
+        const lockKey = user.email;
+        const isLocked = lockedAccounts[lockKey] && Date.now() < lockedAccounts[lockKey];
+        const lockTimeRemaining = isLocked ? Math.ceil((lockedAccounts[lockKey] - Date.now()) / 1000) : 0;
+        let lockBadgeHtml = '';
+        
+        if (isLocked) {
+            const minutes = Math.ceil(lockTimeRemaining / 60);
+            lockBadgeHtml = `<span class="badge badge-inactive">Bloqueada (${minutes}m)</span>`;
+        } else if (store.loginAttempts[lockKey] > 0 && store.loginAttempts[lockKey] < 3) {
+            lockBadgeHtml = `<span class="badge" style="background: #fff3cd; color: #856404;">Intentos: ${store.loginAttempts[lockKey]}/3</span>`;
+        } else {
+            lockBadgeHtml = `<span class="badge" style="background: #d4edda; color: #155724;">Normal</span>`;
+        }
         
         html += `
             <tr>
@@ -576,10 +702,12 @@ function loadUsersList() {
                 <td>${user.email}</td>
                 <td><span class="badge ${roleBadge}">${role.name}</span></td>
                 <td><span class="badge ${stateBadge}">${user.active ? 'Activo' : 'Inactivo'}</span></td>
+                <td>${lockBadgeHtml}</td>
                 <td>
                     <button class="btn-action btn-view" onclick="viewUserDetail('${user.id}')">Ver</button>
                     <button class="btn-action btn-edit" onclick="loadEditUserForm('${user.id}')">Editar</button>
                     <button class="btn-action btn-delete" onclick="toggleUserStatus('${user.id}')">${user.active ? 'Inactivar' : 'Activar'}</button>
+                    ${isLocked ? `<button class="btn-action" style="background: #3498db; color: white;" onclick="unlockAccount('${lockKey}')">Desbloquear</button>` : ''}
                 </td>
             </tr>
         `;
@@ -724,6 +852,13 @@ function toggleUserStatus(userId) {
     }
 }
 
+function unlockAccount(lockKey) {
+    store.loginAttempts[lockKey] = 0;
+    delete lockedAccounts[lockKey];
+    alert(`✅ Cuenta desbloqueada: ${lockKey}`);
+    loadUsersList();
+}
+
 function updateRoleFields() {
     const roleSelect = document.getElementById('newUserRole');
     const doctorFields = document.getElementById('doctorFields');
@@ -776,70 +911,222 @@ function loadStatistics() {
     const doctors = store.users.filter(u => u.roleId === 'R003' && u.active).length;
     const patients = store.patients.filter(p => p.active).length;
     const totalAppointments = store.appointments.length;
-    const confirmedAppointments = store.appointments.filter(a => a.status === 'Confirmada').length;
-    const medicalCares = store.medicalCare.length;
-    const occupancyRate = totalAppointments > 0 ? Math.round((medicalCares / totalAppointments) * 100) : 0;
-    
-    // Especialidades únicas
-    const specialties = [...new Set(store.doctors.map(d => d.specialty))].length;
 
     // Actualizar tarjetas
     document.getElementById('statActiveUsers').textContent = activeUsers;
     document.getElementById('statDoctors').textContent = doctors;
     document.getElementById('statPatients').textContent = patients;
     document.getElementById('statTotalAppointments').textContent = totalAppointments;
-    document.getElementById('statConfirmedAppointments').textContent = confirmedAppointments;
-    document.getElementById('statMedicalCares').textContent = medicalCares;
-    document.getElementById('statOccupancyRate').textContent = occupancyRate + '%';
-    document.getElementById('statSpecialties').textContent = specialties;
 
-    // Médicos por especialidad
+    // ===== GRÁFICO 1: Médicos vs Citas por Especialidad (Gráfica de Líneas) =====
     const doctorsBySpec = {};
+    const appointmentsBySpecialty = {};
+    
+    // Contar médicos por especialidad
     store.doctors.forEach(d => {
         doctorsBySpec[d.specialty] = (doctorsBySpec[d.specialty] || 0) + 1;
     });
 
-    let specHtml = '<table><thead><tr><th>Especialidad</th><th>Cantidad de Médicos</th></tr></thead><tbody>';
-    Object.keys(doctorsBySpec).forEach(spec => {
-        specHtml += `<tr><td>${spec}</td><td>${doctorsBySpec[spec]}</td></tr>`;
+    // Contar citas por especialidad
+    store.appointments.forEach(appt => {
+        const doctor = store.users.find(u => u.id === appt.doctorId);
+        if (doctor) {
+            const doctorInfo = store.doctors.find(d => d.userId === doctor.id);
+            if (doctorInfo) {
+                appointmentsBySpecialty[doctorInfo.specialty] =
+                    (appointmentsBySpecialty[doctorInfo.specialty] || 0) + 1;
+            }
+        }
     });
-    specHtml += '</tbody></table>';
-    document.getElementById('doctorsBySpecialty').innerHTML = specHtml;
 
-    // Pacientes por género
+    // Obtener todas las especialidades únicas
+    const allSpecialties = [...new Set([...Object.keys(doctorsBySpec), ...Object.keys(appointmentsBySpecialty)])];
+    
+    // Preparar datos para la gráfica
+    const doctorCounts = allSpecialties.map(spec => doctorsBySpec[spec] || 0);
+    const appointmentCounts = allSpecialties.map(spec => appointmentsBySpecialty[spec] || 0);
+
+    let combinedHtml = `
+        <div class="stats-section">
+            <h3 class="stats-section-title">Médicos vs Citas por Especialidad</h3>
+            <div class="charts-container">
+                <div class="chart-box">
+                    <div class="chart-wrapper">
+                        <canvas id="combinedChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Reemplazar ambas secciones con una sola gráfica
+    document.getElementById('doctorsBySpecialty').innerHTML = combinedHtml;
+    document.getElementById('appointmentsByStatus').innerHTML = ''; // Limpiar la sección anterior
+
+    // Crear Gráfica Combinada de Líneas
+    setTimeout(() => {
+        const combinedCtx = document.getElementById('combinedChart');
+        if (combinedCtx && allSpecialties.length > 0) {
+            new Chart(combinedCtx, {
+                type: 'line',
+                data: {
+                    labels: allSpecialties,
+                    datasets: [
+                        {
+                            label: 'Número de Médicos',
+                            data: doctorCounts,
+                            borderColor: '#1a6fb0',
+                            backgroundColor: 'rgba(26, 111, 176, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#1a6fb0',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Número de Citas',
+                            data: appointmentCounts,
+                            borderColor: '#48bb78',
+                            backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#48bb78',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 15,
+                                font: { 
+                                    size: 14, 
+                                    weight: '600',
+                                    family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(44, 62, 80, 0.9)',
+                            titleFont: { size: 14, weight: '600' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            cornerRadius: 6
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(225, 232, 237, 0.5)'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12,
+                                    family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                                },
+                                color: '#5a6c7d'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(225, 232, 237, 0.5)'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12,
+                                    family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                                },
+                                color: '#5a6c7d'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    animations: {
+                        tension: {
+                            duration: 1000,
+                            easing: 'linear'
+                        }
+                    }
+                }
+            });
+        } else if (combinedCtx) {
+            const ctx = combinedCtx.getContext('2d');
+            ctx.fillStyle = '#a0aec0';
+            ctx.font = '16px "Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('No hay datos suficientes para mostrar', combinedCtx.width / 2, combinedCtx.height / 2);
+        }
+    }, 100);
+
+    // ===== GRÁFICO 2: Pacientes por Género (Pie Chart) =====
     const patientsByGen = { M: 0, F: 0 };
-    store.patients.forEach(p => {
-        patientsByGen[p.gender]++;
-    });
+    store.patients.forEach(p => { patientsByGen[p.gender]++; });
 
-    let genderHtml = '<table><thead><tr><th>Género</th><th>Cantidad</th></tr></thead><tbody>';
-    genderHtml += `<tr><td>Masculino</td><td>${patientsByGen['M']}</td></tr>`;
-    genderHtml += `<tr><td>Femenino</td><td>${patientsByGen['F']}</td></tr>`;
-    genderHtml += '</tbody></table>';
+    let genderHtml = `
+        <div class="stats-section">
+            <h3 class="stats-section-title">Pacientes por Género</h3>
+            <div class="charts-container">
+                <div class="chart-box">
+                    <div class="pie-chart-wrapper">
+                        <canvas id="genderChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
     document.getElementById('patientsByGender').innerHTML = genderHtml;
 
-    // Citas por estado
-    const appointmentsByStatus = {};
-    store.appointments.forEach(a => {
-        appointmentsByStatus[a.status] = (appointmentsByStatus[a.status] || 0) + 1;
-    });
-
-    let statusHtml = '<table><thead><tr><th>Estado</th><th>Cantidad</th></tr></thead><tbody>';
-    Object.keys(appointmentsByStatus).forEach(status => {
-        statusHtml += `<tr><td>${status}</td><td>${appointmentsByStatus[status]}</td></tr>`;
-    });
-    statusHtml += '</tbody></table>';
-    document.getElementById('appointmentsByStatus').innerHTML = statusHtml;
-}
-
-function populateDoctorSelects() {
-    const doctors = store.users.filter(u => u.roleId === 'R003' && u.active);
-    const selectDoctor = document.getElementById('appointmentDoctor');
-    
-    selectDoctor.innerHTML = '<option value="">-- Seleccionar --</option>';
-    doctors.forEach(doctor => {
-        selectDoctor.innerHTML += `<option value="${doctor.id}">${doctor.name} ${doctor.lastname}</option>`;
-    });
+    // Crear Pie Chart de Género
+    setTimeout(() => {
+        const genderCtx = document.getElementById('genderChart');
+        if (genderCtx) {
+            new Chart(genderCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Masculino', 'Femenino'],
+                    datasets: [{
+                        data: [patientsByGen['M'], patientsByGen['F']],
+                        backgroundColor: ['#1a6fb0', '#48bb78'],
+                        borderColor: ['#ffffff', '#ffffff'],
+                        borderWidth: 3,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: { 
+                                    size: 14, 
+                                    weight: '600',
+                                    family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }, 100);
 }
 
 // ===== FUNCIONES SECRETARIO =====
@@ -889,7 +1176,7 @@ function loadPatientsList() {
                 <td>${patient.email}</td>
                 <td><span class="badge ${stateBadge}">${patient.active ? 'Activo' : 'Inactivo'}</span></td>
                 <td>
-                    <button class="btn-action btn-view" onclick="viewPatientDetail('${patient.id}')">Ver</button>
+                    <button class="btn-action btn-view" onclick="viewSecretaryPatientDetail('${patient.id}')">Ver Expediente</button>
                     <button class="btn-action btn-edit" onclick="loadEditPatientForm('${patient.id}')">Editar</button>
                 </td>
             </tr>
@@ -900,10 +1187,167 @@ function loadPatientsList() {
     patientsList.innerHTML = html;
 }
 
+function viewSecretaryPatientDetail(patientId) {
+    const patient = store.patients.find(p => p.id === patientId);
+    const medicalHistory = store.medicalHistory.filter(m => m.patientId === patientId);
+    
+    // Obtener todas las atenciones médicas de este paciente
+    const medicalCares = store.medicalCare.filter(m => m.patientId === patientId);
+
+    let html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>Expediente Médico - ${patient.name} ${patient.lastname}</h3>
+            <div>
+                <!-- ELIMINADO EL BOTÓN DE EDITAR QUE ESTABA AQUÍ -->
+            </div>
+        </div>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <label>ID Paciente</label>
+                <p>${patient.id}</p>
+            </div>
+            <div class="info-item">
+                <label>Nombre</label>
+                <p>${patient.name}</p>
+            </div>
+            <div class="info-item">
+                <label>Apellido</label>
+                <p>${patient.lastname}</p>
+            </div>
+            <div class="info-item">
+                <label>Cédula</label>
+                <p>${patient.cedula}</p>
+            </div>
+            <div class="info-item">
+                <label>Email</label>
+                <p>${patient.email}</p>
+            </div>
+            <div class="info-item">
+                <label>Teléfono</label>
+                <p>${patient.phone}</p>
+            </div>
+            <div class="info-item">
+                <label>Fecha de Nacimiento</label>
+                <p>${patient.birthDate} (${calculateAge(patient.birthDate)} años)</p>
+            </div>
+            <div class="info-item">
+                <label>Sexo</label>
+                <p>${patient.gender === 'M' ? 'Masculino' : 'Femenino'}</p>
+            </div>
+            <div class="info-item">
+                <label>Dirección</label>
+                <p>${patient.address}</p>
+            </div>
+            <div class="info-item">
+                <label>Contacto Emergencia</label>
+                <p>${patient.emergencyContact}</p>
+            </div>
+            <div class="info-item">
+                <label>Estado</label>
+                <p><span class="badge ${patient.active ? 'badge-active' : 'badge-inactive'}">${patient.active ? 'Activo' : 'Inactivo'}</span></p>
+            </div>
+            <div class="info-item">
+                <label>Fecha de Registro</label>
+                <p>${patient.registryDate}</p>
+            </div>
+        </div>
+    `;
+
+    if (medicalHistory.length > 0) {
+        html += '<h3 style="margin-top: 30px;">Antecedentes Médicos</h3>';
+        medicalHistory.forEach(history => {
+            const doctor = store.users.find(u => u.id === history.doctorId);
+            html += `
+                <div class="info-grid" style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                    <div class="info-item">
+                        <label>Alergias</label>
+                        <p>${history.allergies}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Enfermedades Crónicas</label>
+                        <p>${history.chronic}</p>
+                    </div>
+                    <div class="info-item full">
+                        <label>Observaciones</label>
+                        <p>${history.observations || 'Sin observaciones'}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Registrado por</label>
+                        <p>${doctor ? doctor.name + ' ' + doctor.lastname : 'N/A'}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Fecha de Registro</label>
+                        <p>${history.registryDate}</p>
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        html += `
+            <div style="margin-top: 30px; text-align: center; padding: 20px; background: #f9f9f9; border-radius: 5px;">
+                <p>No hay antecedentes médicos registrados.</p>
+            </div>
+        `;
+    }
+
+    if (medicalCares.length > 0) {
+        html += `
+            <h3 style="margin-top: 30px;">Historial de Atenciones Médicas</h3>
+            <div style="max-height: 400px; overflow-y: auto;">
+        `;
+        
+        // Ordenar por fecha descendente (más recientes primero)
+        medicalCares.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        medicalCares.forEach((care, index) => {
+            const doctor = store.users.find(u => u.id === care.doctorId);
+            
+            html += `
+                <div class="care-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; background: #fff;" 
+                     onclick="toggleCareDetail('secretaryCare${index}')">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${care.date} - ${care.reason}</strong>
+                            <br>
+                            <small>Por: ${doctor ? doctor.name + ' ' + doctor.lastname : 'N/A'}</small>
+                        </div>
+                        <span style="font-size: 18px;">▼</span>
+                    </div>
+                    <div id="secretaryCare${index}" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Diagnóstico</label>
+                                <p>${care.diagnosis}</p>
+                            </div>
+                            <div class="info-item full">
+                                <label>Observaciones</label>
+                                <p>${care.observations || 'Sin observaciones'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+    } else {
+        html += `
+            <div style="margin-top: 30px; text-align: center; padding: 20px; background: #f9f9f9; border-radius: 5px;">
+                <p>No hay atenciones médicas registradas para este paciente.</p>
+            </div>
+        `;
+    }
+
+    document.getElementById('patientDetailContent').innerHTML = html;
+    document.getElementById('secretaryPatientDetail').classList.add('active');
+    document.getElementById('secretaryPatients').classList.remove('active');
+}
+
 function viewPatientDetail(patientId) {
     selectedPatientId = patientId;
     const patient = store.patients.find(p => p.id === patientId);
     const medicalHistory = store.medicalHistory.filter(m => m.patientId === patientId);
+    const medicalCares = store.medicalCare.filter(m => m.patientId === patientId);
 
     let html = `
         <h3>Información del Paciente</h3>
@@ -934,7 +1378,7 @@ function viewPatientDetail(patientId) {
             </div>
             <div class="info-item">
                 <label>Fecha de Nacimiento</label>
-                <p>${patient.birthDate}</p>
+                <p>${patient.birthDate} (${calculateAge(patient.birthDate)} años)</p>
             </div>
             <div class="info-item">
                 <label>Sexo</label>
@@ -962,6 +1406,7 @@ function viewPatientDetail(patientId) {
     if (medicalHistory.length > 0) {
         html += '<h3 style="margin-top: 30px;">Antecedentes Médicos</h3>';
         medicalHistory.forEach(history => {
+            const doctor = store.users.find(u => u.id === history.doctorId);
             html += `
                 <div class="info-grid">
                     <div class="info-item">
@@ -974,7 +1419,11 @@ function viewPatientDetail(patientId) {
                     </div>
                     <div class="info-item full">
                         <label>Observaciones</label>
-                        <p>${history.observations}</p>
+                        <p>${history.observations || 'Sin observaciones'}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Registrado por</label>
+                        <p>${doctor ? doctor.name + ' ' + doctor.lastname : 'N/A'}</p>
                     </div>
                     <div class="info-item">
                         <label>Fecha de Registro</label>
@@ -983,6 +1432,47 @@ function viewPatientDetail(patientId) {
                 </div>
             `;
         });
+    }
+
+    if (medicalCares.length > 0) {
+        html += `
+            <h3 style="margin-top: 30px;">Historial de Atenciones Médicas</h3>
+            <div style="max-height: 400px; overflow-y: auto;">
+        `;
+        
+        // Ordenar por fecha descendente (más recientes primero)
+        medicalCares.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        medicalCares.forEach((care, index) => {
+            const doctor = store.users.find(u => u.id === care.doctorId);
+            
+            html += `
+                <div class="care-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; background: #fff;" 
+                     onclick="toggleCareDetail('care${index}')">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${care.date} - ${care.reason}</strong>
+                            <br>
+                            <small>Por: ${doctor ? doctor.name + ' ' + doctor.lastname : 'N/A'}</small>
+                        </div>
+                        <span style="font-size: 18px;">▼</span>
+                    </div>
+                    <div id="care${index}" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Diagnóstico</label>
+                                <p>${care.diagnosis}</p>
+                            </div>
+                            <div class="info-item full">
+                                <label>Observaciones</label>
+                                <p>${care.observations || 'Sin observaciones'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
     }
 
     document.getElementById('patientDetailContent').innerHTML = html;
@@ -1083,17 +1573,17 @@ function loadAppointmentsList() {
         return;
     }
 
-    let html = '<table><thead><tr><th>ID</th><th>Paciente</th><th>Médico</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
+    let html = '<table><thead><tr><th>ID</th><th>Paciente</th><th>Médico</th><th>Fecha</th><th>Hora</th><th>Estado</th></tr></thead><tbody>';
     
     store.appointments.forEach(appt => {
         const patient = store.patients.find(p => p.id === appt.patientId);
         const doctor = store.users.find(u => u.id === appt.doctorId);
         
-        // Determinar clase del badge según el estado
-        let statusClass = 'badge';
-        if (appt.status === 'Confirmada') statusClass = 'badge badge-active';
-        else if (appt.status === 'Cancelada') statusClass = 'badge badge-inactive';
-        else if (appt.status === 'Pendiente') statusClass = 'badge badge-warning';
+        // Determinar clase inicial según el estado actual
+        let statusClass = '';
+        if (appt.status === 'Confirmada') statusClass = 'status-confirmada';
+        else if (appt.status === 'Cancelada') statusClass = 'status-cancelada';
+        else if (appt.status === 'Pendiente') statusClass = 'status-pendiente';
         
         html += `
             <tr>
@@ -1103,14 +1593,11 @@ function loadAppointmentsList() {
                 <td>${appt.date}</td>
                 <td>${appt.time}</td>
                 <td>
-                    <select class="status-select" onchange="updateAppointmentStatus('${appt.id}', this.value)" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd;">
-                        <option value="Pendiente" ${appt.status === 'Pendiente' ? 'selected' : ''} style="background-color: #fff3cd; color: #856404;">Pendiente</option>
-                        <option value="Confirmada" ${appt.status === 'Confirmada' ? 'selected' : ''} style="background-color: #d4edda; color: #155724;">Confirmada</option>
-                        <option value="Cancelada" ${appt.status === 'Cancelada' ? 'selected' : ''} style="background-color: #f8d7da; color: #721c24;">Cancelada</option>
+                    <select class="status-select ${statusClass}" onchange="updateAppointmentStatus('${appt.id}', this.value); updateStatusSelectColor(this)">
+                        <option value="Pendiente" ${appt.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                        <option value="Confirmada" ${appt.status === 'Confirmada' ? 'selected' : ''}>Confirmada</option>
+                        <option value="Cancelada" ${appt.status === 'Cancelada' ? 'selected' : ''}>Cancelada</option>
                     </select>
-                </td>
-                <td>
-                    <!-- Eliminado el botón Ver -->
                 </td>
             </tr>
         `;
@@ -1120,65 +1607,19 @@ function loadAppointmentsList() {
     appointmentsList.innerHTML = html;
 }
 
-function viewAppointmentDetail(appointmentId) {
-    selectedAppointmentId = appointmentId;
-    const appt = store.appointments.find(a => a.id === appointmentId);
-    const patient = store.patients.find(p => p.id === appt.patientId);
-    const doctor = store.users.find(u => u.id === appt.doctorId);
-    const medicalCare = store.medicalCare.find(m => m.appointmentId === appointmentId);
-
-    let html = `
-        <div class="info-grid">
-            <div class="info-item">
-                <label>ID Cita</label>
-                <p>${appt.id}</p>
-            </div>
-            <div class="info-item">
-                <label>Paciente</label>
-                <p>${patient.name} ${patient.lastname}</p>
-            </div>
-            <div class="info-item">
-                <label>Médico</label>
-                <p>${doctor.name} ${doctor.lastname}</p>
-            </div>
-            <div class="info-item">
-                <label>Fecha</label>
-                <p>${appt.date}</p>
-            </div>
-            <div class="info-item">
-                <label>Hora</label>
-                <p>${appt.time}</p>
-            </div>
-            <div class="info-item">
-                <label>Estado</label>
-                <p><span class="badge">${appt.status}</span></p>
-            </div>
-        </div>
-    `;
-
-    if (medicalCare) {
-        html += `
-            <h3 style="margin-top: 30px;">Atención Médica</h3>
-            <div class="info-grid">
-                <div class="info-item">
-                    <label>Motivo de Consulta</label>
-                    <p>${medicalCare.reason}</p>
-                </div>
-                <div class="info-item">
-                    <label>Diagnóstico</label>
-                    <p>${medicalCare.diagnosis}</p>
-                </div>
-                <div class="info-item full">
-                    <label>Observaciones</label>
-                    <p>${medicalCare.observations}</p>
-                </div>
-            </div>
-        `;
+function updateStatusSelectColor(selectElement) {
+    const value = selectElement.value;
+    // Remover clases de color anteriores
+    selectElement.classList.remove('status-pendiente', 'status-confirmada', 'status-cancelada');
+    
+    // Agregar clase según el estado seleccionado
+    if (value === 'Pendiente') {
+        selectElement.classList.add('status-pendiente');
+    } else if (value === 'Confirmada') {
+        selectElement.classList.add('status-confirmada');
+    } else if (value === 'Cancelada') {
+        selectElement.classList.add('status-cancelada');
     }
-
-    document.getElementById('appointmentDetailContent').innerHTML = html;
-    document.getElementById('secretaryAppointmentDetail').classList.add('active');
-    document.getElementById('secretaryAppointments').classList.remove('active');
 }
 
 function saveNewAppointment(event) {
@@ -1215,7 +1656,7 @@ function saveNewAppointment(event) {
         doctorId: doctorId,
         date: date,
         time: time,
-        status: document.getElementById('appointmentStatus').value,
+        status: 'Agendada',
         createdDate: new Date().toISOString().split('T')[0]
     };
 
@@ -1230,21 +1671,7 @@ function updateAppointmentStatus(appointmentId, newStatus) {
     const appt = store.appointments.find(a => a.id === appointmentId);
     if (appt) {
         appt.status = newStatus;
-        alert(`Estado de la cita ${appointmentId} actualizado a: ${newStatus}`);
-        
-        // Recargar la lista para actualizar los estilos si es necesario
-        loadAppointmentsList();
-    }
-}
-
-function updateAppointmentStatus(appointmentId, newStatus) {
-    const appt = store.appointments.find(a => a.id === appointmentId);
-    if (appt) {
-        appt.status = newStatus;
-        alert(`✅ Estado de la cita ${appointmentId} actualizado a: ${newStatus}`);
-        
-        // Recargar la lista para actualizar los estilos si es necesario
-        loadAppointmentsList();
+        loadAppointmentsList(); // Esto recargará la lista y aplicará los colores automáticamente
     }
 }
 
@@ -1472,7 +1899,7 @@ function loadDoctorAppointments() {
         return;
     }
 
-    let html = '<table><thead><tr><th>ID</th><th>Paciente</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
+    let html = '<table><thead><tr><th>ID</th><th>Paciente</th><th>Fecha</th><th>Hora</th><th>Estado</th></tr></thead><tbody>';
     
     doctorAppointments.forEach(appt => {
         const patient = store.patients.find(p => p.id === appt.patientId);
@@ -1490,50 +1917,12 @@ function loadDoctorAppointments() {
                 <td>${appt.date}</td>
                 <td>${appt.time}</td>
                 <td><span class="${statusClass}">${appt.status}</span></td>
-                <td>
-                    <!-- Eliminado el botón Ver -->
-                </td>
             </tr>
         `;
     });
     
     html += '</tbody></table>';
     doctorAppointmentsList.innerHTML = html;
-}
-
-function viewDoctorAppointmentDetail(appointmentId) {
-    selectedAppointmentId = appointmentId;
-    const appt = store.appointments.find(a => a.id === appointmentId);
-    const patient = store.patients.find(p => p.id === appt.patientId);
-
-    let html = `
-        <div class="info-grid">
-            <div class="info-item">
-                <label>ID Cita</label>
-                <p>${appt.id}</p>
-            </div>
-            <div class="info-item">
-                <label>Paciente</label>
-                <p>${patient.name} ${patient.lastname}</p>
-            </div>
-            <div class="info-item">
-                <label>Fecha</label>
-                <p>${appt.date}</p>
-            </div>
-            <div class="info-item">
-                <label>Hora</label>
-                <p>${appt.time}</p>
-            </div>
-            <div class="info-item">
-                <label>Estado</label>
-                <p><span class="badge">${appt.status}</span></p>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('doctorAppointmentDetailContent').innerHTML = html;
-    document.getElementById('doctorAppointmentDetail').classList.add('active');
-    document.getElementById('doctorAppointments').classList.remove('active');
 }
 
 function populateDoctorAppointmentSelects() {
@@ -1598,7 +1987,7 @@ function saveMedicalHistory(event) {
         history.allergies = document.getElementById('historyAllergies').value;
         history.chronic = document.getElementById('historyChronic').value;
         history.observations = document.getElementById('historyObservations').value;
-        alert('Antecedente médico actualizado exitosamente');
+        // Eliminado el mensaje de confirmación
     } else {
         // Nuevo antecedente
         const newMedicalHistory = {
@@ -1612,13 +2001,36 @@ function saveMedicalHistory(event) {
         };
 
         store.medicalHistory.push(newMedicalHistory);
-        alert('Antecedente médico registrado exitosamente');
+        // Eliminado el mensaje de confirmación
     }
 
     document.getElementById('medicalHistoryForm').reset();
     
     // Volver directamente al detalle del paciente
     viewDoctorPatientDetail(patientId);
+}
+
+function saveMedicalCare(event) {
+    event.preventDefault();
+
+    const appointmentId = document.getElementById('careAppointment').value;
+    const appointment = store.appointments.find(a => a.id === appointmentId);
+
+    const newMedicalCare = {
+        id: generateId('MC'),
+        appointmentId: appointmentId,
+        patientId: appointment.patientId,
+        doctorId: currentUser.id,
+        date: document.getElementById('careDate').value,
+        reason: document.getElementById('careReason').value,
+        diagnosis: document.getElementById('careDiagnosis').value,
+        observations: document.getElementById('careObservations').value,
+        createdDate: new Date().toISOString().split('T')[0]
+    };
+
+    store.medicalCare.push(newMedicalCare);
+    // Eliminado el mensaje de confirmación
+    document.getElementById('medicalCareForm').reset();
 }
 
 function editMedicalHistory(patientId) {
@@ -1661,42 +2073,6 @@ function editMedicalHistory(patientId) {
     showDoctorSection('medicalHistory');
 }
 
-// Modificar la función saveMedicalHistory para que también actualice
-function saveMedicalHistory(event) {
-    event.preventDefault();
-
-    const patientId = document.getElementById('historyPatient').value;
-    const editId = document.getElementById('medicalHistoryForm').dataset.editId;
-
-    if (editId) {
-        // Actualizar antecedente existente
-        const history = store.medicalHistory.find(m => m.id === editId);
-        history.allergies = document.getElementById('historyAllergies').value;
-        history.chronic = document.getElementById('historyChronic').value;
-        history.observations = document.getElementById('historyObservations').value;
-        alert('Antecedente médico actualizado exitosamente');
-    } else {
-        // Nuevo antecedente
-        const newMedicalHistory = {
-            id: generateId('MH'),
-            patientId: patientId,
-            doctorId: currentUser.id,
-            allergies: document.getElementById('historyAllergies').value,
-            chronic: document.getElementById('historyChronic').value,
-            observations: document.getElementById('historyObservations').value,
-            registryDate: new Date().toISOString().split('T')[0]
-        };
-
-        store.medicalHistory.push(newMedicalHistory);
-        alert('Antecedente médico registrado exitosamente');
-    }
-
-    document.getElementById('medicalHistoryForm').reset();
-    
-    // Volver al detalle del paciente
-    viewDoctorPatientDetail(patientId);
-}
-
 function calculateAge(birthDate) {
     const today = new Date();
     const birth = new Date(birthDate);
@@ -1708,13 +2084,4 @@ function calculateAge(birthDate) {
     }
     
     return age;
-}
-
-function toggleCareDetail(careId) {
-    const element = document.getElementById(careId);
-    if (element.style.display === 'none') {
-        element.style.display = 'block';
-    } else {
-        element.style.display = 'none';
-    }
 }
